@@ -1,2 +1,2 @@
-# Test
-Test
+# Smith Waterman
+Smith waterman algorithm with heatmap
