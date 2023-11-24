@@ -1,80 +1,166 @@
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
+"""
+Author: Glenn Ross-Dolan
+Date Created: 24-11-2023
+Description: This file contains a number of functions which produces a 
+Smith-Waterman scoring matrix from two sequences using numpy and visualises 
+it through matplotlib.
+"""
 
-np.set_printoptions(threshold=sys.maxsize)
 
-def similarity_score(a, b):
-    return p if a == b else -q
+#-----------------------------------------------------------------------------
 
-def fill_scoring_matrix(seq1, seq2, W1):
+def similarity_score(a, b, match_score, mismatch_score):
+
+    """
+    Calculate the similarity score between elements a and b.
+
+    Args:
+        a: Element from seq1
+        b: Element from seq2
+        match_score
+        mismatch_score
+
+    Returns one of:
+        int: match_score
+        int: mismatch_score
+    """
+    
+    if a == b:
+        return match_score
+    else:
+        return mismatch_score
+
+#-----------------------------------------------------------------------------
+
+def smith_waterman(seq1, seq2, gap_pen, match_score, mismatch_score):
+
+    """
+    Perform Smith-Waterman local sequence alignment.
+
+    Args:
+        seq1: Reference sequence
+        seq2: Comparison sequence
+        gap_pen:   Gap penalty
+
+    Returns:
+        np.ndarray: Scoring matrix
+    """
+
     def s(i, j):
-        return similarity_score(seq1[i], seq2[j])
+        return similarity_score(seq1[i], seq2[j], match_score, mismatch_score)
 
-    n = len(seq1)
-    m = len(seq2)
-    H = np.zeros((n + 1, m + 1), dtype=int)
+    row_len = len(seq1)
+    col_len = len(seq2)
+    scoring_matrix = np.ndarray((row_len + 1, col_len + 1), dtype=int)
 
-    for i in range(1, n + 1):
-        for j in range(1, m + 1):
-            match = H[i - 1, j - 1] + s(i - 1, j - 1)
-            delete = H[i - 1, j] - W1
-            insert = H[i, j - 1] - W1
-            H[i, j] = max(match, delete, insert, 0)
+    for row in range(1, row_len + 1):
+        for col in range(1, col_len + 1):
+            match = scoring_matrix[row - 1, col - 1] + s(row - 1, col - 1)
+            delete = scoring_matrix[row - 1, col] - gap_pen
+            insert = scoring_matrix[row, col - 1] - gap_pen
+            scoring_matrix[row, col] = max(match, delete, insert, 0)
 
-    return H
+    return scoring_matrix
 
-def find_max_and_traceback(scoring_matrix):
+#-----------------------------------------------------------------------------
+
+def traceback(scoring_matrix):
+
+    """
+    A function which calculates the indices of each point during
+    the traceback step.
+
+    Args: 
+        np.ndarray: Scoring matrix
+    
+    Returns:
+        int: max_value
+        list: traceback_path
+
+    """
+
     max_value = np.max(scoring_matrix)
     max_indices = np.argwhere(scoring_matrix == max_value)[0]
-    i, j = max_indices
-    traceback_path = [(i, j)]
+    row, col = max_indices
+    traceback_path = []
 
-    match = scoring_matrix[i - 1, j - 1] if i > 0 and j > 0 else 0
-    delete = scoring_matrix[i - 1, j] if i > 0 else 0
-    insert = scoring_matrix[i, j - 1] if j > 0 else 0
+    
+    match = scoring_matrix[row - 1, col - 1] if row > 0 and col > 0 else 0
+    delete = scoring_matrix[row - 1, col] if row > 0 else 0
+    insert = scoring_matrix[row, col - 1] if col > 0 else 0
 
     while match != 0 and delete != 0 and insert != 0:
         if match >= delete and match >= insert:
-            i, j = i - 1, j - 1
+            row, col = row - 1, col - 1
         elif delete >= insert:
-            i -= 1
+            row -= 1
         else:
-            j -= 1
+            col -= 1
 
-        match = scoring_matrix[i - 1, j - 1] if i > 0 and j > 0 else 0
-        delete = scoring_matrix[i - 1, j] if i > 0 else 0
-        insert = scoring_matrix[i, j - 1] if j > 0 else 0
+        match = scoring_matrix[row - 1, col - 1] if row > 0 and col > 0 else 0
+        delete = scoring_matrix[row - 1, col] if row > 0 else 0
+        insert = scoring_matrix[row, col - 1] if col > 0 else 0
 
-        traceback_path.append((i, j))
+        traceback_path.append((row, col))
 
     traceback_path.reverse()
 
     return max_value, traceback_path
 
+#-----------------------------------------------------------------------------
+
+def visualise_matrix(scoring_matrix):
+
+    """
+    This function displays the scoring matrix as a heat map
+    Args:
+        scoring_matrix
+    Returns:
+        Nothing but it produces a matplotlib plot
+    """
+
+    plt.imshow(scoring_matrix, cmap='magma', origin='upper')
+    plt.colorbar(label='Score')
+    plt.title('Scoring Matrix Heatmap')
+    plt.xlabel('Sequence 2')
+    plt.ylabel('Sequence 1')
+    plt.xticks(np.arange(0, len(seq1),step = int(0.249999*len(seq1))))
+    plt.yticks(np.arange(0, len(seq2), step = int(0.249999*len(seq2))))
+
+    # Highlight the traceback path
+    traceback_path = traceback(scoring_matrix)[1]
+    traceback_path = np.array(traceback_path)
+    plt.plot(traceback_path[:, 1], traceback_path[:, 0], marker='.', \
+             color='white', label='Traceback Path')
+
+
+    plt.legend()
+    plt.show()
+
+#-----------------------------------------------------------------------------
+
+
 # Example sequences
-seq2 = "GTTGCTGTAGCATTCTGGTAGG"
-seq1 = "AGGCATCTACCCTCCTCACGGA"
+seq1 = """
+GTTTGATCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGC
+AGCTTGCTGCTTCGCTGACGGTCAGTCGTAGCTAGCTTGGTAGCTGGGAAACTGCCTGATGGAGGGGGAT
+AACTACTGGAAACGGTGGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGGGCCTCTTG
+CCATCAGATGTGCCCAGATGGGATTAGCTAGTTGGTGAGGTAACGGCTCACCAAGGCGACGATCCCTAGC
+TGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGG
+"""
 
-# Gap penalty
-W1 = 2
-p = 4
-q = 4
-scoring_matrix = fill_scoring_matrix(seq1, seq2, W1)
+seq2 = """
+AGAGTTTGATCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGA
+AGCAGCTTGCTGCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGG
+GATAAGATCGTACGTAGCTAGCTGATCGTAGGTCCCTAGTAGCTGACAAAGAGGGGGACCTTCGGGCCTC
+TTGCCATCAGATGTGCCCAGATGGTCAGTCGATCGTAGCTGATCGTAGCTGTGGGGGGTACGATGCTAGC
+GTACGTATCGTAGCTGCGCATTATATCAGCTGCATGTCTAGCTAGCTGTGAATATCGGCGCTATGAGCTT
+"""
 
-# Display the scoring matrix as a heatmap
-plt.imshow(scoring_matrix, cmap='viridis', origin='lower')
-plt.colorbar(label='Score')
-plt.title('Scoring Matrix Heatmap')
-plt.xlabel('Sequence 2')
-plt.ylabel('Sequence 1')
-plt.xticks(np.arange(len(seq2) + 1), [''] + list(seq2))
-plt.yticks(np.arange(len(seq1) + 1), [''] + list(seq1))
+# Call the functions
+matrix_1 = smith_waterman(seq1, seq2, gap_pen = 2, \
+                          match_score = 2, mismatch_score = -2)
 
-# Highlight the traceback path
-max_value, traceback_path = find_max_and_traceback(scoring_matrix)
-traceback_path = np.array(traceback_path)
-plt.plot(traceback_path[:, 1], traceback_path[:, 0], marker='o', color='red', label='Traceback Path')
-
-plt.legend()
-plt.show()
+visualise_matrix(matrix_1)
