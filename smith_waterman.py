@@ -11,29 +11,6 @@ it through matplotlib.
 
 #-----------------------------------------------------------------------------
 
-def similarity_score(a, b, match_score, mismatch_score):
-
-    """
-    Calculate the similarity score between elements a and b.
-
-    Args:
-        a: Element from seq1
-        b: Element from seq2
-        match_score
-        mismatch_score
-
-    Returns one of:
-        int: match_score
-        int: mismatch_score
-    """
-    
-    if a == b:
-        return match_score
-    else:
-        return mismatch_score
-
-#-----------------------------------------------------------------------------
-
 def smith_waterman(seq1, seq2, gap_pen, match_score, mismatch_score):
 
     """
@@ -48,16 +25,16 @@ def smith_waterman(seq1, seq2, gap_pen, match_score, mismatch_score):
         np.ndarray: Scoring matrix
     """
 
-    def s(i, j):
-        return similarity_score(seq1[i], seq2[j], match_score, mismatch_score)
-
-    row_len = len(seq1)
-    col_len = len(seq2)
-    scoring_matrix = np.ndarray((row_len + 1, col_len + 1), dtype=int)
+    row_len = len(seq2)
+    col_len = len(seq1)
+    scoring_matrix = np.zeros((row_len + 1, col_len + 1), dtype=int)
 
     for row in range(1, row_len + 1):
         for col in range(1, col_len + 1):
-            match = scoring_matrix[row - 1, col - 1] + s(row - 1, col - 1)
+            if seq2[row - 1] == seq1[col - 1]:
+                match = scoring_matrix[row - 1, col - 1] + match_score
+            else:
+                match = scoring_matrix[row - 1, col - 1] + mismatch_score
             delete = scoring_matrix[row - 1, col] - gap_pen
             insert = scoring_matrix[row, col - 1] - gap_pen
             scoring_matrix[row, col] = max(match, delete, insert, 0)
@@ -84,7 +61,7 @@ def traceback(scoring_matrix):
     max_value = np.max(scoring_matrix)
     max_indices = np.argwhere(scoring_matrix == max_value)[0]
     row, col = max_indices
-    traceback_path = []
+    traceback_path = [(row, col)]
 
     
     match = scoring_matrix[row - 1, col - 1] if row > 0 and col > 0 else 0
@@ -124,8 +101,8 @@ def visualise_matrix(scoring_matrix):
     plt.imshow(scoring_matrix, cmap='magma', origin='upper')
     plt.colorbar(label='Score')
     plt.title('Scoring Matrix Heatmap')
-    plt.xlabel('Sequence 2')
-    plt.ylabel('Sequence 1')
+    plt.xlabel('Query Sequence (seq2)')
+    plt.ylabel('Reference Sequence (seq1)')
     plt.xticks(np.arange(0, len(seq1),step = int(0.249999*len(seq1))))
     plt.yticks(np.arange(0, len(seq2), step = int(0.249999*len(seq2))))
 
@@ -141,26 +118,14 @@ def visualise_matrix(scoring_matrix):
 
 #-----------------------------------------------------------------------------
 
+# Reference Sequence
+seq1 = "TTTAGCATGCGCAT"
 
-# Example sequences
-seq1 = """
-GTTTGATCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGC
-AGCTTGCTGCTTCGCTGACGGTCAGTCGTAGCTAGCTTGGTAGCTGGGAAACTGCCTGATGGAGGGGGAT
-AACTACTGGAAACGGTGGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGGGCCTCTTG
-CCATCAGATGTGCCCAGATGGGATTAGCTAGTTGGTGAGGTAACGGCTCACCAAGGCGACGATCCCTAGC
-TGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGG
-"""
-
-seq2 = """
-AGAGTTTGATCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGA
-AGCAGCTTGCTGCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGG
-GATAAGATCGTACGTAGCTAGCTGATCGTAGGTCCCTAGTAGCTGACAAAGAGGGGGACCTTCGGGCCTC
-TTGCCATCAGATGTGCCCAGATGGTCAGTCGATCGTAGCTGATCGTAGCTGTGGGGGGTACGATGCTAGC
-GTACGTATCGTAGCTGCGCATTATATCAGCTGCATGTCTAGCTAGCTGTGAATATCGGCGCTATGAGCTT
-"""
+# Query Sequence
+seq2 = "ATAGACGACAT"
 
 # Call the functions
 matrix_1 = smith_waterman(seq1, seq2, gap_pen = 2, \
-                          match_score = 2, mismatch_score = -2)
+                          match_score = 3, mismatch_score = -3)
 
 visualise_matrix(matrix_1)
