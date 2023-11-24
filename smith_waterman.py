@@ -17,9 +17,11 @@ def smith_waterman(seq1, seq2, gap_pen, match_score, mismatch_score):
     Perform Smith-Waterman local sequence alignment.
 
     Args:
-        seq1: Reference sequence
-        seq2: Comparison sequence
-        gap_pen:   Gap penalty
+        seq1 (str): Reference sequence
+        seq2 (str): Comparison sequence
+        gap_pen (int): Gap penalty
+        match_score (int): Score for a match
+        mismatch_score (int): Score for a mismatch
 
     Returns:
         np.ndarray: Scoring matrix
@@ -46,12 +48,11 @@ def smith_waterman(seq1, seq2, gap_pen, match_score, mismatch_score):
 def traceback(scoring_matrix):
 
     """
-    A function which calculates the indices of each point during
-    the traceback step.
+    Calculate the indices of each point during the traceback step.
 
-    Args: 
-        np.ndarray: Scoring matrix
-    
+    Args:
+        scoring_matrix (np.ndarray): Scoring matrix
+
     Returns:
         int: max_value
         list: traceback_path
@@ -91,11 +92,12 @@ def traceback(scoring_matrix):
 def visualise_matrix(scoring_matrix):
 
     """
-    This function displays the scoring matrix as a heat map
+    Display the scoring matrix as a heat map.
+
     Args:
-        scoring_matrix
-    Returns:
-        Nothing but it produces a matplotlib plot
+        scoring_matrix (np.ndarray): Scoring matrix
+        seq1 (str): Reference sequence
+        seq2 (str): Comparison sequence
     """
 
     plt.imshow(scoring_matrix, cmap='magma', origin='upper')
